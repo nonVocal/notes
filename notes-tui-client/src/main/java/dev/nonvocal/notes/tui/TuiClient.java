@@ -5,9 +5,12 @@ import com.googlecode.lanterna.TextColor;
 import com.googlecode.lanterna.gui2.*;
 import com.googlecode.lanterna.input.KeyStroke;
 import com.googlecode.lanterna.input.KeyType;
+import com.googlecode.lanterna.input.MouseAction;
+import com.googlecode.lanterna.input.MouseActionType;
 import com.googlecode.lanterna.screen.Screen;
 import com.googlecode.lanterna.screen.TerminalScreen;
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
+import com.googlecode.lanterna.terminal.MouseCaptureMode;
 import com.googlecode.lanterna.terminal.Terminal;
 
 import java.io.IOException;
@@ -39,9 +42,18 @@ public class TuiClient {
     /** The centre panel whose content is swapped when the user picks a sidebar item. */
     private Panel contentArea;
 
+    /**
+     * Sidebar navigation buttons kept so the scroll wheel can move focus between them.
+     * Order matches top-to-bottom visual order.
+     */
+    private final java.util.List<Button> sidebarButtons = new java.util.ArrayList<>();
+
     public TuiClient() throws IOException {
         Terminal terminal = new DefaultTerminalFactory()
                 .setInitialTerminalSize(new TerminalSize(120, 40))
+                // Enable click + release events so mouse clicks activate buttons/textboxes.
+                // CLICK_RELEASE is the least intrusive mode; no constant move-event spam.
+                .setMouseCaptureMode(MouseCaptureMode.CLICK_RELEASE)
                 .createTerminal();
         this.screen = new TerminalScreen(terminal);
         this.screen.startScreen();
@@ -81,15 +93,28 @@ public class TuiClient {
 
         window.setComponent(rootPanel);
 
-        // ── Global keyboard shortcuts ─────────────────────────────────────────
+        // ── Global keyboard shortcuts + mouse scroll ──────────────────────────
         window.addWindowListener(new WindowListenerAdapter() {
             @Override
             public void onInput(Window basePane, KeyStroke keyStroke, AtomicBoolean deliverEvent) {
+                // Ctrl+F → search dialog
                 if (keyStroke.getKeyType() == KeyType.Character
                         && keyStroke.getCharacter() == 'f'
                         && keyStroke.isCtrlDown()) {
-                    deliverEvent.set(false); // consume – do not forward to focused component
+                    deliverEvent.set(false);
                     showSearchDialog();
+                    return;
+                }
+                // Mouse scroll wheel → move sidebar focus up / down
+                if (keyStroke instanceof MouseAction) {
+                    MouseActionType type = ((MouseAction) keyStroke).getActionType();
+                    if (type == MouseActionType.SCROLL_UP) {
+                        deliverEvent.set(false);
+                        moveSidebarFocus(-1);
+                    } else if (type == MouseActionType.SCROLL_DOWN) {
+                        deliverEvent.set(false);
+                        moveSidebarFocus(+1);
+                    }
                 }
             }
         });
@@ -100,11 +125,26 @@ public class TuiClient {
 
     // ── Sidebar helpers ───────────────────────────────────────────────────────
 
-    /** Adds a full-width button to a sidebar panel. */
-    private static void addSidebarButton(Panel sidebar, String label, Runnable action) {
+    /** Adds a full-width button to the sidebar and registers it for scroll navigation. */
+    private void addSidebarButton(Panel sidebar, String label, Runnable action) {
         Button btn = new Button(label, action);
         btn.setLayoutData(LinearLayout.createLayoutData(LinearLayout.Alignment.Fill));
         sidebar.addComponent(btn);
+        sidebarButtons.add(btn);
+    }
+
+    /**
+     * Moves keyboard focus within the sidebar by {@code delta} steps (−1 = up, +1 = down).
+     * Wraps around at both ends.
+     */
+    private void moveSidebarFocus(int delta) {
+        if (sidebarButtons.isEmpty()) return;
+        int current = -1;
+        for (int i = 0; i < sidebarButtons.size(); i++) {
+            if (sidebarButtons.get(i).isFocused()) { current = i; break; }
+        }
+        int next = Math.floorMod((current == -1 ? 0 : current) + delta, sidebarButtons.size());
+        sidebarButtons.get(next).takeFocus();
     }
 
     // ── Content views ─────────────────────────────────────────────────────────
