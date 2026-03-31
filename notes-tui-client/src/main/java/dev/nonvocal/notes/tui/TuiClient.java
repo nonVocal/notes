@@ -27,9 +27,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * │ New Note…   │   (content area)                │
  * │─────────────│                                 │
  * │ Exit        │                                 │
- * └─────────────┴─────────────────────────────────┘
+ * ├─────────────┴─────────────────────────────────┤
+ * │ :_                          (command bar, ESC)│
+ * └───────────────────────────────────────────────┘
  * </pre>
  * The sidebar is always visible; the content area updates on selection.
+ * Press ESC to open the Vim-style command bar (ENTER executes, ESC cancels).
  */
 public class TuiClient {
 
@@ -39,6 +42,10 @@ public class TuiClient {
     private final Screen screen;
     private final MultiWindowTextGUI gui;
 
+    // ── Main layout references (needed across methods) ────────────────────────
+    private Panel rootPanel;
+    private BasicWindow mainWindow;
+
     /** The centre panel whose content is swapped when the user picks a sidebar item. */
     private Panel contentArea;
 
@@ -47,6 +54,11 @@ public class TuiClient {
      * Order matches top-to-bottom visual order.
      */
     private final java.util.List<Button> sidebarButtons = new java.util.ArrayList<>();
+
+    // ── Command bar (Vim-style, shown on ESC) ─────────────────────────────────
+    private Panel commandBarPanel;
+    private TextBox commandBox;
+    private boolean commandBarVisible = false;
 
     public TuiClient() throws IOException {
         Terminal terminal = new DefaultTerminalFactory()
@@ -63,14 +75,13 @@ public class TuiClient {
 
     public void start() throws IOException {
         // Full-screen, no window decorations – the inner borders provide structure.
-        BasicWindow window = new BasicWindow("Notes TUI");
-        window.setHints(List.of(Window.Hint.FULL_SCREEN, Window.Hint.NO_DECORATIONS));
+        this.mainWindow = new BasicWindow("Notes TUI");
+        mainWindow.setHints(List.of(Window.Hint.FULL_SCREEN, Window.Hint.NO_DECORATIONS));
 
-        Panel rootPanel = new Panel(new BorderLayout());
+        this.rootPanel = new Panel(new BorderLayout());
 
         // ── Left sidebar ─────────────────────────────────────────────────────
         Panel sidebarInner = new Panel(new LinearLayout(Direction.VERTICAL));
-        // Invisible spacer that fixes the column width of the sidebar
         sidebarInner.addComponent(new EmptySpace(new TerminalSize(SIDEBAR_WIDTH - 2, 1)));
 
         addSidebarButton(sidebarInner, "All Notes",  this::showAllNotes);
@@ -78,7 +89,7 @@ public class TuiClient {
         addSidebarButton(sidebarInner, "Search…",   this::showSearchDialog);
         sidebarInner.addComponent(new EmptySpace(new TerminalSize(0, 1)));
         sidebarInner.addComponent(new Separator(Direction.HORIZONTAL));
-        addSidebarButton(sidebarInner, "Exit", window::close);
+        addSidebarButton(sidebarInner, "Exit", mainWindow::close);
 
         rootPanel.addComponent(
                 sidebarInner.withBorder(Borders.singleLine("Notes")),
@@ -91,14 +102,43 @@ public class TuiClient {
                 contentArea.withBorder(Borders.singleLine("")),
                 BorderLayout.Location.CENTER);
 
-        window.setComponent(rootPanel);
+        // ── Command bar (hidden; added to BOTTOM dynamically on ESC) ─────────
+        // Uses BorderLayout so the TextBox fills the remaining width automatically.
+        this.commandBox = new TextBox(new TerminalSize(1, 1));
+        this.commandBarPanel = new Panel(new BorderLayout());
+        commandBarPanel.addComponent(new Label(":"), BorderLayout.Location.LEFT);
+        commandBarPanel.addComponent(commandBox,     BorderLayout.Location.CENTER);
+
+        mainWindow.setComponent(rootPanel);
 
         // ── Global keyboard shortcuts + mouse scroll ──────────────────────────
-        window.addWindowListener(new WindowListenerAdapter() {
+        mainWindow.addWindowListener(new WindowListenerAdapter() {
             @Override
             public void onInput(Window basePane, KeyStroke keyStroke, AtomicBoolean deliverEvent) {
+                KeyType type = keyStroke.getKeyType();
+
+                // ── Command bar is open ───────────────────────────────────────
+                if (commandBarVisible) {
+                    if (type == KeyType.Enter) {
+                        deliverEvent.set(false);
+                        String cmd = commandBox.getText().trim();
+                        hideCommandBar();
+                        handleCommand(cmd);
+                    } else if (type == KeyType.Escape) {
+                        deliverEvent.set(false);
+                        hideCommandBar();
+                    }
+                    return; // all other keys go to the TextBox normally
+                }
+
+                // ── Normal mode ───────────────────────────────────────────────
+                if (type == KeyType.Escape) {
+                    deliverEvent.set(false);
+                    showCommandBar();
+                    return;
+                }
                 // Ctrl+F → search dialog
-                if (keyStroke.getKeyType() == KeyType.Character
+                if (type == KeyType.Character
                         && keyStroke.getCharacter() == 'f'
                         && keyStroke.isCtrlDown()) {
                     deliverEvent.set(false);
@@ -107,11 +147,11 @@ public class TuiClient {
                 }
                 // Mouse scroll wheel → move sidebar focus up / down
                 if (keyStroke instanceof MouseAction) {
-                    MouseActionType type = ((MouseAction) keyStroke).getActionType();
-                    if (type == MouseActionType.SCROLL_UP) {
+                    MouseActionType mtype = ((MouseAction) keyStroke).getActionType();
+                    if (mtype == MouseActionType.SCROLL_UP) {
                         deliverEvent.set(false);
                         moveSidebarFocus(-1);
-                    } else if (type == MouseActionType.SCROLL_DOWN) {
+                    } else if (mtype == MouseActionType.SCROLL_DOWN) {
                         deliverEvent.set(false);
                         moveSidebarFocus(+1);
                     }
@@ -119,8 +159,57 @@ public class TuiClient {
             }
         });
 
-        gui.addWindowAndWait(window);
+        gui.addWindowAndWait(mainWindow);
         screen.stopScreen();
+    }
+
+    // ── Command bar ───────────────────────────────────────────────────────────
+
+    private void showCommandBar() {
+        if (commandBarVisible) return;
+        commandBarVisible = true;
+        commandBox.setText("");
+        rootPanel.addComponent(commandBarPanel, BorderLayout.Location.BOTTOM);
+        commandBox.takeFocus();
+    }
+
+    private void hideCommandBar() {
+        if (!commandBarVisible) return;
+        commandBarVisible = false;
+        rootPanel.removeComponent(commandBarPanel);
+        if (!sidebarButtons.isEmpty()) {
+            sidebarButtons.get(0).takeFocus();
+        }
+    }
+
+    /**
+     * Executes a command entered in the command bar.
+     * Supported commands (case-insensitive):
+     * <ul>
+     *   <li>{@code q / quit / exit}  – quit the application</li>
+     *   <li>{@code new / n}          – open the New Note dialog</li>
+     *   <li>{@code search / s}       – open the Search dialog</li>
+     *   <li>{@code all / list / ls}  – show All Notes view</li>
+     * </ul>
+     */
+    private void handleCommand(String cmd) {
+        switch (cmd.toLowerCase()) {
+            case "q": case "quit": case "exit":
+                mainWindow.close();
+                break;
+            case "new": case "n":
+                showNewNoteDialog();
+                break;
+            case "search": case "s":
+                showSearchDialog();
+                break;
+            case "all": case "list": case "ls":
+                showAllNotes();
+                break;
+            default:
+                // Unknown command – silently ignore for now
+                break;
+        }
     }
 
     // ── Sidebar helpers ───────────────────────────────────────────────────────
