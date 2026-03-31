@@ -6,72 +6,308 @@
     <title>Notes</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: system-ui, sans-serif; background: #f0f2f5; color: #222; }
-        header { background: #1a73e8; color: #fff; padding: 16px 24px; font-size: 22px; font-weight: bold; }
-        main { max-width: 800px; margin: 32px auto; padding: 0 16px; }
-        #form-card, .note-card {
-            background: #fff; border-radius: 8px; padding: 20px;
-            box-shadow: 0 2px 6px rgba(0,0,0,.1); margin-bottom: 20px;
+
+        body {
+            font-family: system-ui, sans-serif;
+            height: 100dvh;
+            display: flex;
+            overflow: hidden;
+            background: #f0f2f5;
+            color: #222;
         }
+
+        /* ── Sidebar ─────────────────────────────────────────────────────────── */
+        .sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            background: #1a1a2e;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-brand {
+            padding: 20px 18px 16px;
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: .3px;
+            border-bottom: 1px solid rgba(255,255,255,.1);
+            user-select: none;
+        }
+
+        .sidebar nav {
+            flex: 1;
+            padding: 10px 0;
+        }
+
+        .sidebar nav button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 11px 18px;
+            background: none;
+            border: none;
+            border-left: 3px solid transparent;
+            color: rgba(255,255,255,.7);
+            font-size: 14px;
+            text-align: left;
+            cursor: pointer;
+            transition: background .15s, color .15s;
+        }
+
+        .sidebar nav button:hover {
+            background: rgba(255,255,255,.07);
+            color: #fff;
+        }
+
+        .sidebar nav button.active {
+            background: rgba(255,255,255,.11);
+            color: #fff;
+            border-left-color: #4f8ef7;
+            font-weight: 600;
+        }
+
+        .sidebar-footer {
+            padding: 12px 18px;
+            font-size: 11px;
+            color: rgba(255,255,255,.3);
+            border-top: 1px solid rgba(255,255,255,.08);
+        }
+
+        /* ── Content area ────────────────────────────────────────────────────── */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px 36px;
+        }
+
+        .view { display: none; }
+        .view.active { display: block; }
+
+        .view-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 22px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid #dde1e8;
+        }
+
+        /* ── Note cards ──────────────────────────────────────────────────────── */
+        .note-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.08);
+            margin-bottom: 12px;
+            border: 1px solid #e8eaed;
+        }
+
+        .note-card-title   { font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+        .note-card-content { color: #555; font-size: 13px; white-space: pre-wrap; line-height: 1.55; }
+        .note-card-footer  { display: flex; justify-content: flex-end; margin-top: 10px; }
+
+        /* ── Form ────────────────────────────────────────────────────────────── */
+        .form-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 26px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.08);
+            border: 1px solid #e8eaed;
+            max-width: 620px;
+        }
+
+        .field-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #444;
+        }
+
         input[type=text], textarea {
-            width: 100%; border: 1px solid #ccc; border-radius: 4px;
-            padding: 8px 10px; font-size: 15px; margin-bottom: 10px;
+            width: 100%;
+            border: 1px solid #d0d5dd;
+            border-radius: 6px;
+            padding: 9px 11px;
+            font-size: 14px;
+            margin-bottom: 16px;
+            font-family: inherit;
+            transition: border-color .15s;
         }
-        textarea { height: 90px; resize: vertical; }
-        button {
-            background: #1a73e8; color: #fff; border: none;
-            border-radius: 4px; padding: 8px 20px; font-size: 15px; cursor: pointer;
+
+        input[type=text]:focus, textarea:focus {
+            outline: none;
+            border-color: #4f8ef7;
+            box-shadow: 0 0 0 3px rgba(79,142,247,.15);
         }
-        button:hover { background: #1558b0; }
-        .note-title { font-weight: bold; font-size: 17px; margin-bottom: 6px; }
-        .note-content { color: #555; font-size: 14px; white-space: pre-wrap; }
-        .note-actions { text-align: right; margin-top: 10px; }
-        .note-actions button { background: #c0392b; padding: 5px 14px; font-size: 13px; }
-        #status { color: #c0392b; margin-bottom: 10px; }
+
+        textarea { height: 130px; resize: vertical; }
+
+        /* ── Search ──────────────────────────────────────────────────────────── */
+        .search-wrap {
+            display: flex;
+            max-width: 520px;
+            margin-bottom: 8px;
+        }
+
+        #search-input {
+            flex: 1;
+            border-radius: 6px 0 0 6px;
+            margin-bottom: 0;
+            border-right: none;
+        }
+
+        .search-kbd-hint {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 18px;
+        }
+
+        kbd {
+            display: inline-block;
+            padding: 1px 5px;
+            border: 1px solid #bbb;
+            border-radius: 3px;
+            font-size: 11px;
+            background: #f7f7f7;
+        }
+
+        /* ── Buttons ─────────────────────────────────────────────────────────── */
+        .btn {
+            background: #1a73e8;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 9px 22px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background .15s;
+        }
+
+        .btn:hover            { background: #1558b0; }
+        .btn-danger           { background: #d93025; }
+        .btn-danger:hover     { background: #b1261c; }
+        .btn-sm               { padding: 5px 13px; font-size: 13px; }
+        .btn-search           { border-radius: 0 6px 6px 0; padding: 9px 16px; }
+
+        /* ── Status / feedback ───────────────────────────────────────────────── */
+        #status { font-size: 13px; min-height: 20px; margin-bottom: 12px; }
+        #status.error   { color: #d93025; }
+        #status.success { color: #1e8e3e; }
+
+        .empty-hint { color: #888; font-size: 14px; }
     </style>
 </head>
 <body>
-<header>📝 Notes</header>
-<main>
-    <div id="form-card">
-        <h2 style="margin-bottom:14px;">New Note</h2>
-        <p id="status"></p>
-        <input id="title" type="text" placeholder="Title…" />
-        <textarea id="content" placeholder="Content…"></textarea>
-        <button id="save-btn">Save Note</button>
-    </div>
 
-    <div id="notes-list">
-        <p>Loading notes…</p>
-    </div>
+<!-- ── Sidebar ───────────────────────────────────────────────────────────── -->
+<aside class="sidebar">
+    <div class="sidebar-brand">📝 Notes</div>
+    <nav id="sidebar-nav">
+        <button data-view="all-notes" class="active">🗒  All Notes</button>
+        <button data-view="new-note">✏️  New Note</button>
+        <button data-view="search">🔍  Search</button>
+    </nav>
+    <div class="sidebar-footer">Ctrl+F — Search</div>
+</aside>
+
+<!-- ── Content area ──────────────────────────────────────────────────────── -->
+<main class="content">
+
+    <!-- All Notes ──────────────────────────────────────────────────────────── -->
+    <section id="view-all-notes" class="view active">
+        <div class="view-title">All Notes</div>
+        <div id="notes-list"><p class="empty-hint">Loading notes…</p></div>
+    </section>
+
+    <!-- New Note ───────────────────────────────────────────────────────────── -->
+    <section id="view-new-note" class="view">
+        <div class="view-title">New Note</div>
+        <div class="form-card">
+            <p id="status"></p>
+            <label class="field-label" for="title">Title</label>
+            <input id="title" type="text" placeholder="Note title…" />
+            <label class="field-label" for="note-content">Content</label>
+            <textarea id="note-content" placeholder="Write your note here…"></textarea>
+            <button class="btn" id="save-btn">Save Note</button>
+        </div>
+    </section>
+
+    <!-- Search ─────────────────────────────────────────────────────────────── -->
+    <section id="view-search" class="view">
+        <div class="view-title">Search</div>
+        <div class="search-wrap">
+            <input id="search-input" type="text" placeholder="Search notes…" autocomplete="off" />
+            <button class="btn btn-search" id="search-btn">Search</button>
+        </div>
+        <p class="search-kbd-hint">Tip: press <kbd>Ctrl+F</kbd> from anywhere to jump here.</p>
+        <div id="search-results"></div>
+    </section>
+
 </main>
+
 <script>
     const API = 'api/notes';
+    let allNotes = [];
 
+    // ── View routing ───────────────────────────────────────────────────────────
+    function showView(name) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('#sidebar-nav button').forEach(b => b.classList.remove('active'));
+
+        document.getElementById('view-' + name).classList.add('active');
+        const btn = document.querySelector(`#sidebar-nav [data-view="${name}"]`);
+        if (btn) btn.classList.add('active');
+
+        if (name === 'all-notes') loadNotes();
+        if (name === 'search')    document.getElementById('search-input').focus();
+        if (name === 'new-note')  document.getElementById('title').focus();
+    }
+
+    document.querySelectorAll('#sidebar-nav button').forEach(btn => {
+        btn.addEventListener('click', () => showView(btn.dataset.view));
+    });
+
+    // ── Keyboard shortcuts ─────────────────────────────────────────────────────
+    document.addEventListener('keydown', e => {
+        if (e.ctrlKey && e.key === 'f') {
+            e.preventDefault();
+            showView('search');
+        }
+    });
+
+    // ── Load & render notes ────────────────────────────────────────────────────
     async function loadNotes() {
         const list = document.getElementById('notes-list');
         try {
             const resp = await fetch(API);
-            const notes = await resp.json();
-            list.innerHTML = '';
-            if (!notes.length) {
-                list.innerHTML = '<p>No notes yet.</p>';
-                return;
-            }
-            notes.forEach(n => list.appendChild(noteCard(n)));
-        } catch (e) {
-            list.innerHTML = '<p style="color:red">Could not load notes. Is the server running?</p>';
+            allNotes = await resp.json();
+            renderNotes(allNotes, list);
+        } catch {
+            list.innerHTML = '<p style="color:#d93025">Could not load notes. Is the server running?</p>';
         }
     }
 
-    function noteCard(note) {
+    function renderNotes(notes, container) {
+        if (!notes.length) {
+            container.innerHTML = '<p class="empty-hint">No notes yet.</p>';
+            return;
+        }
+        container.innerHTML = '';
+        notes.forEach(n => container.appendChild(buildNoteCard(n)));
+    }
+
+    function buildNoteCard(note) {
         const div = document.createElement('div');
         div.className = 'note-card';
         div.innerHTML = `
-            <div class="note-title">${esc(note.title)}</div>
-            <div class="note-content">${esc(note.content)}</div>
-            <div class="note-actions">
-                <button data-id="${note.id}">Delete</button>
+            <div class="note-card-title">${esc(note.title)}</div>
+            <div class="note-card-content">${esc(note.content ?? '')}</div>
+            <div class="note-card-footer">
+                <button class="btn btn-danger btn-sm">Delete</button>
             </div>`;
         div.querySelector('button').onclick = () => deleteNote(note.id, div);
         return div;
@@ -80,26 +316,65 @@
     async function deleteNote(id, el) {
         await fetch(`${API}/${id}`, { method: 'DELETE' });
         el.remove();
+        allNotes = allNotes.filter(n => n.id !== id);
+        runSearch(); // keep search results in sync
     }
 
+    // ── Save note ──────────────────────────────────────────────────────────────
     document.getElementById('save-btn').onclick = async () => {
-        const title   = document.getElementById('title').value.trim();
-        const content = document.getElementById('content').value.trim();
-        const status  = document.getElementById('status');
-        if (!title) { status.textContent = 'Title is required.'; return; }
-        status.textContent = '';
-        await fetch(API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, content })
-        });
-        document.getElementById('title').value   = '';
-        document.getElementById('content').value = '';
-        loadNotes();
+        const titleEl   = document.getElementById('title');
+        const contentEl = document.getElementById('note-content');
+        const title     = titleEl.value.trim();
+        const content   = contentEl.value.trim();
+
+        if (!title) { setStatus('Title is required.', 'error'); titleEl.focus(); return; }
+
+        try {
+            await fetch(API, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ title, content })
+            });
+            titleEl.value   = '';
+            contentEl.value = '';
+            setStatus('Note saved!', 'success');
+            setTimeout(() => showView('all-notes'), 800);
+        } catch {
+            setStatus('Failed to save note.', 'error');
+        }
     };
 
+    function setStatus(msg, type) {
+        const el = document.getElementById('status');
+        el.textContent = msg;
+        el.className = type;
+    }
+
+    // Enter in title → jump to content textarea
+    document.getElementById('title').addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); document.getElementById('note-content').focus(); }
+    });
+
+    // ── Search ─────────────────────────────────────────────────────────────────
+    function runSearch() {
+        const q       = document.getElementById('search-input').value.trim().toLowerCase();
+        const results = document.getElementById('search-results');
+        if (!q) { results.innerHTML = ''; return; }
+        const hits = allNotes.filter(n =>
+            n.title.toLowerCase().includes(q) ||
+            (n.content ?? '').toLowerCase().includes(q));
+        renderNotes(hits, results);
+    }
+
+    document.getElementById('search-input').addEventListener('input',   runSearch);
+    document.getElementById('search-btn')  .addEventListener('click',   runSearch);
+    document.getElementById('search-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') runSearch();
+    });
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
     function esc(s) {
-        return (s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
     loadNotes();
