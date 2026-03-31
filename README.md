@@ -1,7 +1,7 @@
 ﻿# Notes – Multi-Module Maven Project
 
 A multi-module Maven project for a Notes application.  
-**No framework dependencies** – plain Java 26, Jakarta Servlet 6, Lanterna, H2 and Jackson only.
+**No framework dependencies** – plain Java 21, Jakarta Servlet 6, Lanterna, H2 and Jackson only.
 
 ---
 
@@ -78,7 +78,7 @@ notes/
 | `notes-vim-plugin` | `pom` | Vim/Neovim plugin (VimScript + autoload) | – (zip assembly) |
 | `notes-firefox-plugin` | `pom` | Firefox WebExtension Manifest V2 | – (xpi assembly) |
 | `notes-chrome-plugin` | `pom` | Chrome Extension Manifest V3 (Service Worker) | – (zip assembly) |
-| `notes-idea-plugin` | `jar` | IntelliJ IDEA plugin (tool window + actions) | IntelliJ Platform SDK (provided) |
+| `notes-idea-plugin` | `jar` | IntelliJ IDEA plugin (tool window + actions) | IntelliJ Platform SDK 2024.3 (provided) |
 | `notes-osgi` | `jar` | OSGi bundle with DS annotations, processed by bnd | notes-core, OSGi DS Annotations (provided) |
 
 ---
@@ -87,7 +87,7 @@ notes/
 
 | Concern | Choice |
 |---|---|
-| Language | Java 26 |
+| Language | Java 21 |
 | Build | Apache Maven 3.9+ |
 | Web runtime | Eclipse Jetty 12 (EE10 / Jakarta EE 10) |
 | Servlet API | Jakarta Servlet 6.0 |
@@ -96,6 +96,7 @@ notes/
 | Terminal UI | Lanterna 3.1.1 |
 | OSGi tooling | bnd-maven-plugin 7.0 |
 | Testing | JUnit Jupiter 5.11 |
+| IDE plugin SDK | IntelliJ Platform 2024.3 (ideaIC) |
 
 ---
 
@@ -159,6 +160,45 @@ mvn package -pl notes-vim-plugin
 # Manual install (unzip into ~/.vim or ~/.config/nvim)
 unzip notes-vim-plugin/target/notes-vim-plugin-1.0.0.zip -d ~/.vim
 ```
+
+## IntelliJ IDEA Plugin
+
+The plugin targets IntelliJ IDEA 2024.3+ (Community or Ultimate) and provides:
+
+- A **Notes tool window** in the right sidebar (`View → Tool Windows → Notes`)
+- A **New Note** action under `Tools → Notes → New Note…` (also bound to `Ctrl+Shift+N`)
+- A **Show All Notes** action to focus the tool window
+
+### Build
+
+```bash
+mvn package -pl notes-idea-plugin -am
+# → notes-idea-plugin/target/notes-idea-plugin-1.0.0.jar
+```
+
+### Install
+
+1. Open IntelliJ IDEA.
+2. Go to **Settings → Plugins → ⚙ → Install Plugin from Disk…**
+3. Select `notes-idea-plugin/target/notes-idea-plugin-1.0.0.jar`.
+4. Restart the IDE.
+
+### Build notes – IntelliJ Platform SDK
+
+The IntelliJ Platform SDK (`com.jetbrains.intellij.idea:ideaIC`) is distributed as a
+ZIP archive containing hundreds of JARs. Because Maven cannot place a ZIP on the
+compile classpath automatically, and because IntelliJ 2024.3 distributes its platform
+APIs across many module JARs in `lib/` and `lib/modules/`, the module uses a custom
+two-step build:
+
+1. **`maven-dependency-plugin`** unpacks `lib/*.jar` and `lib/modules/*.jar` from the
+   `ideaIC` ZIP into `target/idea-sdk/` during the `initialize` phase.
+2. **`maven-antrun-plugin`** replaces the default `maven-compiler-plugin` compile step
+   with an Ant `<javac>` task that uses `<fileset>` wildcards to add every unpacked
+   JAR to the classpath — no need to enumerate individual module JARs.
+
+The `ideaIC` ZIP (~800 MB) is downloaded once and cached in the local Maven repository
+(`~/.m2/repository/com/jetbrains/intellij/idea/ideaIC/`).
 
 ---
 
