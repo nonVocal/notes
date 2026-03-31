@@ -1,0 +1,53 @@
+*notes.txt*  Vim plugin for the Notes application      *notes* *notes-vim-plugin*
+
+==============================================================================
+CONTENTS                                                        *notes-contents*
+
+    1. Introduction .............. |notes-intro|
+    2. Configuration ............. |notes-config|
+    3. Commands .................. |notes-commands|
+    4. Mappings .................. |notes-mappings|
+
+==============================================================================
+1. INTRODUCTION                                                    *notes-intro*
+
+notes.vim integrates the Notes REST API into Vim/Neovim. It lets you create,
+list, search, and delete notes without leaving your editor.
+
+Requires curl to be available in $PATH.
+
+==============================================================================
+2. CONFIGURATION                                                  *notes-config*
+
+*g:notes_api_url*
+    URL of the Notes REST API. Default: 'http://localhost:8080/api/notes'
+
+*g:notes_split*
+    How new buffers are opened. Default: 'vertical'. Can be 'split'.
+
+==============================================================================
+3. COMMANDS                                                      *notes-commands*
+
+:NotesNew                                                         *:NotesNew*
+    Open a new buffer to compose a note.
+
+:NotesList                                                       *:NotesList*
+    Fetch and display all notes from the API.
+
+:NotesDelete                                                    *:NotesDelete*
+    Delete a note by ID.
+
+:NotesSearch                                                    *:NotesSearch*
+    Search notes by keyword.
+
+==============================================================================
+4. MAPPINGS                                                      *notes-mappings*
+
+<Leader>nn      :NotesNew
+<Leader>nl      :NotesList
+<Leader>nd      :NotesDelete
+<Leader>ns      :NotesSearch
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
+

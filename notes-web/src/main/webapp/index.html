@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, sans-serif; background: #f0f2f5; color: #222; }
+        header { background: #1a73e8; color: #fff; padding: 16px 24px; font-size: 22px; font-weight: bold; }
+        main { max-width: 800px; margin: 32px auto; padding: 0 16px; }
+        #form-card, .note-card {
+            background: #fff; border-radius: 8px; padding: 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,.1); margin-bottom: 20px;
+        }
+        input[type=text], textarea {
+            width: 100%; border: 1px solid #ccc; border-radius: 4px;
+            padding: 8px 10px; font-size: 15px; margin-bottom: 10px;
+        }
+        textarea { height: 90px; resize: vertical; }
+        button {
+            background: #1a73e8; color: #fff; border: none;
+            border-radius: 4px; padding: 8px 20px; font-size: 15px; cursor: pointer;
+        }
+        button:hover { background: #1558b0; }
+        .note-title { font-weight: bold; font-size: 17px; margin-bottom: 6px; }
+        .note-content { color: #555; font-size: 14px; white-space: pre-wrap; }
+        .note-actions { text-align: right; margin-top: 10px; }
+        .note-actions button { background: #c0392b; padding: 5px 14px; font-size: 13px; }
+        #status { color: #c0392b; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+<header>📝 Notes</header>
+<main>
+    <div id="form-card">
+        <h2 style="margin-bottom:14px;">New Note</h2>
+        <p id="status"></p>
+        <input id="title" type="text" placeholder="Title…" />
+        <textarea id="content" placeholder="Content…"></textarea>
+        <button id="save-btn">Save Note</button>
+    </div>
+
+    <div id="notes-list">
+        <p>Loading notes…</p>
+    </div>
+</main>
+<script>
+    const API = 'api/notes';
+
+    async function loadNotes() {
+        const list = document.getElementById('notes-list');
+        try {
+            const resp = await fetch(API);
+            const notes = await resp.json();
+            list.innerHTML = '';
+            if (!notes.length) {
+                list.innerHTML = '<p>No notes yet.</p>';
+                return;
+            }
+            notes.forEach(n => list.appendChild(noteCard(n)));
+        } catch (e) {
+            list.innerHTML = '<p style="color:red">Could not load notes. Is the server running?</p>';
+        }
+    }
+
+    function noteCard(note) {
+        const div = document.createElement('div');
+        div.className = 'note-card';
+        div.innerHTML = `
+            <div class="note-title">${esc(note.title)}</div>
+            <div class="note-content">${esc(note.content)}</div>
+            <div class="note-actions">
+                <button data-id="${note.id}">Delete</button>
+            </div>`;
+        div.querySelector('button').onclick = () => deleteNote(note.id, div);
+        return div;
+    }
+
+    async function deleteNote(id, el) {
+        await fetch(`${API}/${id}`, { method: 'DELETE' });
+        el.remove();
+    }
+
+    document.getElementById('save-btn').onclick = async () => {
+        const title   = document.getElementById('title').value.trim();
+        const content = document.getElementById('content').value.trim();
+        const status  = document.getElementById('status');
+        if (!title) { status.textContent = 'Title is required.'; return; }
+        status.textContent = '';
+        await fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, content })
+        });
+        document.getElementById('title').value   = '';
+        document.getElementById('content').value = '';
+        loadNotes();
+    };
+
+    function esc(s) {
+        return (s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    loadNotes();
+</script>
+</body>
+</html>
+

@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee
+                             https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
+         version="6.0"
+         metadata-complete="false">
+
+    <display-name>Notes Web Application</display-name>
+    <description>Notes application deployed on Jetty</description>
+
+    <!-- ================================================================== -->
+    <!-- Notes REST API Servlet                                              -->
+    <!-- ================================================================== -->
+    <servlet>
+        <servlet-name>NotesApiServlet</servlet-name>
+        <servlet-class>dev.nonvocal.notes.web.servlet.NotesApiServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>NotesApiServlet</servlet-name>
+        <url-pattern>/api/notes/*</url-pattern>
+    </servlet-mapping>
+
+    <!-- ================================================================== -->
+    <!-- Welcome files                                                        -->
+    <!-- ================================================================== -->
+    <welcome-file-list>
+        <welcome-file>index.html</welcome-file>
+    </welcome-file-list>
+
+    <!-- ================================================================== -->
+    <!-- Error pages                                                          -->
+    <!-- ================================================================== -->
+    <error-page>
+        <error-code>404</error-code>
+        <location>/error/404.html</location>
+    </error-page>
+    <error-page>
+        <error-code>500</error-code>
+        <location>/error/500.html</location>
+    </error-page>
+
+    <!-- ================================================================== -->
+    <!-- Session configuration                                               -->
+    <!-- ================================================================== -->
+    <session-config>
+        <session-timeout>30</session-timeout>
+        <cookie-config>
+            <http-only>true</http-only>
+        </cookie-config>
+    </session-config>
+
+</web-app>
+

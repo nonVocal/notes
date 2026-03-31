@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>dev.nonvocal</groupId>
+        <artifactId>notes-parent</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>notes-chrome-plugin</artifactId>
+    <packaging>pom</packaging>
+    <name>Notes Chrome Plugin</name>
+    <description>Chrome WebExtension (Manifest V3)</description>
+
+    <build>
+        <plugins>
+            <!-- Package the extension as .zip -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <id>create-crx-zip</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/chrome-extension.xml</descriptor>
+                            </descriptors>
+                            <finalName>notes-chrome-${project.version}</finalName>
+                            <appendAssemblyId>false</appendAssemblyId>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+

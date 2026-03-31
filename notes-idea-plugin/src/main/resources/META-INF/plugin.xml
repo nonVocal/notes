@@ -1,0 +1,46 @@
+﻿<idea-plugin>
+    <id>dev.nonvocal.notes.idea</id>
+    <name>Notes</name>
+    <version>1.0.0</version>
+    <vendor email="notes@example.com" url="https://example.com">Notes Project</vendor>
+
+    <description><![CDATA[
+        Integrates the Notes application into IntelliJ IDEA.<br>
+        <ul>
+            <li>Create, view and delete notes from the IDE</li>
+            <li>Dedicated tool window for note management</li>
+            <li>Quick-create action via menu or shortcut</li>
+        </ul>
+    ]]></description>
+
+    <!-- Compatible with IDEA 2023.1 and later -->
+    <idea-version since-build="231"/>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Tool window shown in the right sidebar -->
+        <toolWindow id="Notes"
+                    anchor="right"
+                    factoryClass="dev.nonvocal.notes.idea.NotesToolWindowFactory"
+                    icon="/icons/notes13.svg"/>
+    </extensions>
+
+    <actions>
+        <group id="NotesGroup" text="Notes" description="Notes actions" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <action id="NotesNewAction"
+                    class="dev.nonvocal.notes.idea.action.NewNoteAction"
+                    text="New Note…"
+                    description="Create a new note"
+                    icon="AllIcons.General.Add">
+                <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift N"/>
+            </action>
+            <action id="NotesListAction"
+                    class="dev.nonvocal.notes.idea.action.ListNotesAction"
+                    text="Show All Notes"
+                    description="Open the Notes tool window"/>
+        </group>
+    </actions>
+</idea-plugin>
+
