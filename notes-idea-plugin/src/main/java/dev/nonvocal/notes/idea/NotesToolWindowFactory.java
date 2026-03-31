@@ -1,4 +1,4 @@
-﻿package dev.nonvocal.notes.idea;
+package dev.nonvocal.notes.idea;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;

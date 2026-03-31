@@ -1,4 +1,4 @@
-﻿# bnd.bnd – OSGi bundle configuration processed by bnd-maven-plugin
+# bnd.bnd – OSGi bundle configuration processed by bnd-maven-plugin
 #
 # bnd reads this file and:
 #   • Generates OSGI-INF/<component>.xml from @Component/@Reference annotations

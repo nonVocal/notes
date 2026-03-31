@@ -1,4 +1,4 @@
-﻿package dev.nonvocal.notes.idea.action;
+package dev.nonvocal.notes.idea.action;
 
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;

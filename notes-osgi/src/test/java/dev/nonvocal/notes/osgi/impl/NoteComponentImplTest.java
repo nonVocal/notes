@@ -1,4 +1,4 @@
-﻿package dev.nonvocal.notes.osgi.impl;
+package dev.nonvocal.notes.osgi.impl;
 
 import dev.nonvocal.notes.core.entity.Note;
 import dev.nonvocal.notes.core.service.NoteServiceImpl;

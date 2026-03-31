@@ -1,4 +1,4 @@
-﻿package dev.nonvocal.notes.tui;
+package dev.nonvocal.notes.tui;
 
 import com.googlecode.lanterna.TerminalSize;
 import com.googlecode.lanterna.TextColor;

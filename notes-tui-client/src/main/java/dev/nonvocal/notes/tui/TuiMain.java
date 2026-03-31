@@ -1,4 +1,4 @@
-﻿package dev.nonvocal.notes.tui;
+package dev.nonvocal.notes.tui;
 
 /**
  * Entry point for the TUI client.

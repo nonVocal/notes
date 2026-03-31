@@ -1,4 +1,4 @@
-﻿package dev.nonvocal.notes.web.servlet;
+package dev.nonvocal.notes.web.servlet;
 
 import dev.nonvocal.notes.core.entity.Note;
 import dev.nonvocal.notes.core.service.NoteService;

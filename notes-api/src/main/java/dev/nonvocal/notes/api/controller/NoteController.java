@@ -1,4 +1,4 @@
-﻿package dev.nonvocal.notes.api.controller;
+package dev.nonvocal.notes.api.controller;
 
 import dev.nonvocal.notes.core.entity.Note;
 import dev.nonvocal.notes.core.service.NoteService;

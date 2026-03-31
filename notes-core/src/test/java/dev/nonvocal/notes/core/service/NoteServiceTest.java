@@ -1,4 +1,4 @@
-﻿package dev.nonvocal.notes.core.service;
+package dev.nonvocal.notes.core.service;
 
 import dev.nonvocal.notes.core.entity.Note;
 import org.junit.jupiter.api.BeforeEach;

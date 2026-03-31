@@ -1,4 +1,4 @@
-﻿package dev.nonvocal.notes.web;
+package dev.nonvocal.notes.web;
 
 import dev.nonvocal.notes.web.servlet.NotesApiServlet;
 import org.junit.jupiter.api.Test;

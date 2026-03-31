@@ -1,4 +1,4 @@
-﻿package dev.nonvocal.notes.core.entity;
+package dev.nonvocal.notes.core.entity;
 
 /**
  * Note entity class
