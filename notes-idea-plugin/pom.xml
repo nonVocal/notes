@@ -66,6 +66,99 @@
 
     <build>
         <plugins>
+            <!--
+                The ideaIC artifact is distributed as a ZIP, not a JAR.
+                Maven does not put ZIP artifacts on the compile classpath automatically.
+                In IntelliJ 2024.3 the platform APIs are spread across many JARs in
+                lib/ and lib/modules/, so we unpack all of them and compile via Ant,
+                which supports wildcard fileset classpath entries.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.6.1</version>
+                <executions>
+                    <execution>
+                        <id>unpack-idea-sdk</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>com.jetbrains.intellij.idea</groupId>
+                                    <artifactId>ideaIC</artifactId>
+                                    <version>${intellij.version}</version>
+                                    <type>zip</type>
+                                    <outputDirectory>${project.build.directory}/idea-sdk</outputDirectory>
+                                    <!-- Extract all JARs from lib/ and lib/modules/ -->
+                                    <includes>lib/*.jar,lib/modules/*.jar</includes>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+                Disable the default maven-compiler-plugin compile execution.
+                The compilation is handled by maven-antrun-plugin below, which
+                can use Ant fileset wildcards to add all IntelliJ SDK JARs to the
+                classpath without having to enumerate every single module JAR.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <phase>none</phase>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+                Compile sources with Ant so we can use fileset wildcards for the
+                IntelliJ SDK classpath. All JARs from idea-sdk/lib/ and
+                idea-sdk/lib/modules/ are added automatically.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>compile-idea-plugin</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <mkdir dir="${project.build.outputDirectory}"/>
+                                <javac srcdir="${project.basedir}/src/main/java"
+                                       destdir="${project.build.outputDirectory}"
+                                       release="21"
+                                       encoding="UTF-8"
+                                       includeantruntime="false">
+                                    <classpath>
+                                        <!-- Maven-resolved compile-scope artifacts (notes-api, annotations, …) -->
+                                        <path refid="maven.compile.classpath"/>
+                                        <!-- IntelliJ Platform top-level JARs (app.jar, lib.jar, …) -->
+                                        <fileset dir="${project.build.directory}/idea-sdk/lib"
+                                                 includes="*.jar"/>
+                                        <!-- IntelliJ Platform module JARs (intellij.platform.*.jar, …) -->
+                                        <fileset dir="${project.build.directory}/idea-sdk/lib/modules"
+                                                 includes="*.jar"/>
+                                    </classpath>
+                                </javac>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
