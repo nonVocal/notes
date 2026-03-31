@@ -16,6 +16,10 @@
     <name>Notes OSGi Bundle</name>
     <description>OSGi bundle with Declarative Services (DS) annotations</description>
 
+    <properties>
+        <maven.compiler.release>25</maven.compiler.release>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>dev.nonvocal</groupId>

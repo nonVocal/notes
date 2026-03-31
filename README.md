@@ -168,6 +168,6 @@ unzip notes-vim-plugin/target/notes-vim-plugin-1.0.0.zip -d ~/.vim
 |---|---|
 | GroupId | `dev.nonvocal` |
 | Version | `1.0.0` |
-| Java source/target | `26` |
+| Java source/target | `25` |
 | Encoding | `UTF-8` |
 | Base package | `dev.nonvocal.notes` |

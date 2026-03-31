@@ -32,6 +32,7 @@
     </repositories>
 
     <properties>
+        <maven.compiler.release>25</maven.compiler.release>
         <intellij.version>2024.3</intellij.version>
     </properties>
 

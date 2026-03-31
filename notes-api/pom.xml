@@ -16,6 +16,10 @@
     <name>Notes API Module</name>
     <description>API interfaces and DTOs</description>
 
+    <properties>
+        <maven.compiler.release>25</maven.compiler.release>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>dev.nonvocal</groupId>

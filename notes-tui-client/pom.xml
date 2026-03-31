@@ -16,6 +16,10 @@
     <name>Notes TUI Client</name>
     <description>Terminal User Interface client using Lanterna</description>
 
+    <properties>
+        <maven.compiler.release>25</maven.compiler.release>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>dev.nonvocal</groupId>

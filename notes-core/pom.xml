@@ -16,6 +16,10 @@
     <name>Notes Core Module</name>
     <description>Core business logic and entities</description>
 
+    <properties>
+        <maven.compiler.release>25</maven.compiler.release>
+    </properties>
+
     <dependencies>
         <!-- H2 in-process database (runtime + test) -->
         <dependency>

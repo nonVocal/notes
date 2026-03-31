@@ -16,6 +16,10 @@
     <name>Notes Web Module</name>
     <description>WAR deployed on Jetty – serves the Notes REST API and static UI</description>
 
+    <properties>
+        <maven.compiler.release>25</maven.compiler.release>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>dev.nonvocal</groupId>
