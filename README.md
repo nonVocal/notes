@@ -288,8 +288,13 @@ nnoremap <C-f> :NotesSearch<CR>
 The plugin targets IntelliJ IDEA 2024.3+ (Community or Ultimate) and provides:
 
 - A **Notes tool window** in the right sidebar (`View → Tool Windows → Notes`)
+- A **Notes dialog** that opens the same two-panel UI in a floating, non-modal window
+  (`Tools → Notes → Open Notes Dialog…`, bound to `Ctrl+Alt+N`)
 - A **New Note** action under `Tools → Notes → New Note…` (also bound to `Ctrl+Shift+N`)
 - A **Show All Notes** action to focus the tool window
+
+Both the tool window and the dialog reuse the same `NotesToolWindowFactory.buildNotesPanel()`
+component, so layout and behaviour are always in sync.
 
 ### Build
 
@@ -308,10 +313,7 @@ mvn package -pl notes-idea-plugin -am
 ### Build notes – IntelliJ Platform SDK
 
 The IntelliJ Platform SDK (`com.jetbrains.intellij.idea:ideaIC`) is distributed as a
-ZIP archive containing hundreds of JARs. Because Maven cannot place a ZIP on the
-compile classpath automatically, and because IntelliJ 2024.3 distributes its platform
-APIs across many module JARs in `lib/` and `lib/modules/`, the module uses a custom
-two-step build:
+ZIP archive containing hundreds of JARs. The module uses a two-step build to handle this:
 
 1. **`maven-dependency-plugin`** unpacks `lib/*.jar` and `lib/modules/*.jar` from the
    `ideaIC` ZIP into `target/idea-sdk/` during the `initialize` phase.
@@ -321,6 +323,23 @@ two-step build:
 
 The `ideaIC` ZIP (~800 MB) is downloaded once and cached in the local Maven repository
 (`~/.m2/repository/com/jetbrains/intellij/idea/ideaIC/`).
+
+#### IDE symbol resolution
+
+IntelliJ IDEA's Maven importer does not place ZIP-type dependencies on the module
+classpath, so without extra configuration the editor shows *"Cannot resolve symbol
+'intellij'"* errors even though compilation succeeds.
+
+To fix this, the `pom.xml` declares two additional `system`-scope dependencies that
+point directly to the JARs extracted by the unpack step:
+
+| `systemPath` | Contains |
+|---|---|
+| `target/idea-sdk/lib/app-client.jar` | `ToolWindowFactory`, `ToolWindow`, `Content`, `ContentFactory`, `AnAction`, `WindowManager`, … |
+| `target/idea-sdk/lib/util-8.jar` | `Project`, … |
+
+After running `mvn initialize` (or any full build) once, click **Load Maven Changes**
+in IntelliJ IDEA to add these JARs to the module classpath and clear all red errors.
 
 ---
 
