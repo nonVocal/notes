@@ -25,7 +25,7 @@ notes/
 │   │   └── NotesApiServlet.java
 │   └── src/main/webapp/
 │       ├── WEB-INF/web.xml
-│       ├── index.html
+│       ├── index.html               # Sidebar layout (mirrors TUI)
 │       └── error/404.html / 500.html
 │
 ├── notes-tui-client/                # Terminal UI (Lanterna)
@@ -73,13 +73,37 @@ notes/
 |---|---|---|---|
 | `notes-core` | `jar` | Entities, service interfaces & implementations, persistence | H2, Jackson, JUnit 5 |
 | `notes-api` | `jar` | Plain-Java controller layer | notes-core, JUnit 5 |
-| `notes-web` | **`war`** | Jakarta Servlet REST API + static UI, deployed on Jetty | notes-api, Jakarta Servlet API 6 |
-| `notes-tui-client` | `jar` | Terminal User Interface | notes-api, Lanterna 3.1.1 |
-| `notes-vim-plugin` | `pom` | Vim/Neovim plugin (VimScript + autoload) | – (zip assembly) |
+| `notes-web` | **`war`** | Jakarta Servlet REST API + sidebar SPA, deployed on Jetty | notes-api, Jakarta Servlet API 6 |
+| `notes-tui-client` | `jar` | Full-featured Terminal UI with sidebar, search, mouse & command bar | notes-api, Lanterna 3.1.1 |
+| `notes-vim-plugin` | `pom` | Vim/Neovim plugin with NERDTree-style sidebar | – (zip assembly) |
 | `notes-firefox-plugin` | `pom` | Firefox WebExtension Manifest V2 | – (xpi assembly) |
 | `notes-chrome-plugin` | `pom` | Chrome Extension Manifest V3 (Service Worker) | – (zip assembly) |
 | `notes-idea-plugin` | `jar` | IntelliJ IDEA plugin (tool window + actions) | IntelliJ Platform SDK 2024.3 (provided) |
 | `notes-osgi` | `jar` | OSGi bundle with DS annotations, processed by bnd | notes-core, OSGi DS Annotations (provided) |
+
+---
+
+## Shared UI Layout
+
+All three interactive clients follow the same two-panel layout concept:
+
+```
+┌─ Sidebar ──────┬──────────────────────────────┐
+│  All Notes     │                              │
+│  New Note      │   Content / main area        │
+│  Search        │   (updates on selection)     │
+│────────────────│                              │
+│  Exit / Close  │                              │
+└────────────────┴──────────────────────────────┘
+```
+
+| Feature | TUI | Web | Vim |
+|---|---|---|---|
+| Persistent sidebar | ✅ `BorderLayout.LEFT` | ✅ CSS flexbox `<aside>` | ✅ `topleft vsplit` |
+| Content area | ✅ swapped via `removeAllComponents` | ✅ CSS `.view` sections | ✅ scratch buffer in right window |
+| Ctrl+F → Search | ✅ `WindowListenerAdapter` | ✅ `keydown` listener | ✅ buffer-local `<C-f>` |
+| Mouse support | ✅ `MouseCaptureMode.CLICK_RELEASE` | ✅ native browser | ✅ `set mouse=a` + `<2-LeftMouse>` |
+| ESC → command input | ✅ Vim-style command bar at bottom | – | ✅ Vim's native `:` command line |
 
 ---
 
@@ -138,6 +162,58 @@ cd $JETTY_HOME && java -jar start.jar
 # → http://localhost:8080/notes
 ```
 
+## TUI Client
+
+The terminal UI uses Lanterna 3.1.1 and runs in any xterm-compatible terminal.
+
+```
+┌─[ Notes ]────────┬──────────────────────────────────────┐
+│  All Notes       │  Welcome to Notes TUI Client         │
+│  New Note…       │  Select an option from the sidebar.  │
+│  Search…         │                                      │
+│──────────────────│                                      │
+│  Exit            │                                      │
+└──────────────────┴──────────────────────────────────────┘
+: _                                    ← Vim-style command bar (ESC)
+```
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl+F` | Open search dialog |
+| `ESC` | Open Vim-style command bar at bottom |
+| `:q` / `:quit` / `:exit` | Quit |
+| `:new` / `:n` | New note dialog |
+| `:search` / `:s` | Search dialog |
+| `:all` / `:list` / `:ls` | All notes view |
+| Scroll wheel | Move sidebar focus up / down |
+| Mouse click | Activate any button |
+
+```bash
+mvn exec:java -pl notes-tui-client -Dexec.mainClass=dev.nonvocal.notes.tui.TuiMain -am
+```
+
+## Web UI
+
+The single-page web application mirrors the TUI layout with a persistent left sidebar.
+
+```
+┌─ 📝 Notes ───────┬──────────────────────────────────────┐
+│  🗒  All Notes   │  All Notes                           │
+│  ✏️  New Note    │  ┌─────────────────────────────────┐ │
+│  🔍  Search      │  │ Note title              [Delete]│ │
+│                  │  └─────────────────────────────────┘ │
+│  Ctrl+F — Search │                                      │
+└──────────────────┴──────────────────────────────────────┘
+```
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl+F` | Jump to Search view and focus input |
+| `Enter` (in title field) | Move focus to content textarea |
+
+After saving a note the view automatically switches to **All Notes**.  
+Search filters notes client-side as you type.
+
 ## Browser Extensions
 
 ```bash
@@ -152,14 +228,60 @@ mvn package -pl notes-chrome-plugin
 
 ## Vim Plugin
 
+The plugin provides a NERDTree-style persistent sidebar that mirrors the TUI layout.
+
+```
+┌─ Notes ──────────┬──────────────────────────────────┐
+│  All Notes       │  [scratch buffer – notes list,   │
+│  New Note        │   Markdown editor, or search      │
+│  Search          │   results]                        │
+│──────────────────│                                   │
+│  q Close  ? Help │                                   │
+└──────────────────┴──────────────────────────────────┘
+```
+
+### Build & install
+
 ```bash
-# Build zip
 mvn package -pl notes-vim-plugin
 # → notes-vim-plugin/target/notes-vim-plugin-1.0.0.zip
 
-# Manual install (unzip into ~/.vim or ~/.config/nvim)
+# Unzip into Vim's runtime path
 unzip notes-vim-plugin/target/notes-vim-plugin-1.0.0.zip -d ~/.vim
+# or for Neovim
+unzip notes-vim-plugin/target/notes-vim-plugin-1.0.0.zip -d ~/.config/nvim
 ```
+
+### Configuration (`vimrc`)
+
+```vim
+let g:notes_api_url       = 'http://localhost:8080/api/notes'
+let g:notes_sidebar_width = 26   " sidebar column width
+let g:notes_mouse         = 1    " set mouse=a (0 to disable)
+
+" Optional: global Ctrl+F → search (sidebar has it buffer-locally by default)
+nnoremap <C-f> :NotesSearch<CR>
+```
+
+### Commands & mappings
+
+| Mapping | Command | Action |
+|---|---|---|
+| `<Leader>no` | `:NotesOpen` | Open / focus sidebar |
+| `<Leader>nt` | `:NotesToggle` | Toggle sidebar |
+| `<Leader>nn` | `:NotesNew` | New note (prompts for title) |
+| `<Leader>nl` | `:NotesList` | List all notes |
+| `<Leader>ns` | `:NotesSearch` | Search notes |
+| `<Leader>nd` | `:NotesDelete` | Delete note by ID |
+
+**Inside the sidebar:**
+
+| Key | Action |
+|---|---|
+| `<CR>` / double-click | Activate item |
+| `<C-f>` | Search |
+| `q` | Close sidebar |
+| `?` | Quick help |
 
 ## IntelliJ IDEA Plugin
 
