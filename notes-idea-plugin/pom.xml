@@ -42,13 +42,33 @@
             <artifactId>notes-api</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- IntelliJ Platform SDK (provided at runtime by the IDE) -->
+        <!-- IntelliJ Platform SDK (provided at runtime by the IDE).
+             The ZIP is unpacked by maven-dependency-plugin during initialize.
+             The two system-scope entries below point to the extracted JARs so
+             that IntelliJ IDEA's Maven importer can resolve com.intellij.*
+             symbols without needing to understand the raw ZIP artifact. -->
         <dependency>
             <groupId>com.jetbrains.intellij.idea</groupId>
             <artifactId>ideaIC</artifactId>
             <version>${intellij.version}</version>
             <type>zip</type>
             <scope>provided</scope>
+        </dependency>
+        <!-- app-client.jar: ToolWindow(Factory), Content(Factory), AnAction, WindowManager, … -->
+        <dependency>
+            <groupId>com.jetbrains.intellij.sdk</groupId>
+            <artifactId>app-client</artifactId>
+            <version>${intellij.version}</version>
+            <scope>system</scope>
+            <systemPath>${project.build.directory}/idea-sdk/lib/app-client.jar</systemPath>
+        </dependency>
+        <!-- util-8.jar: Project, … -->
+        <dependency>
+            <groupId>com.jetbrains.intellij.sdk</groupId>
+            <artifactId>util-8</artifactId>
+            <version>${intellij.version}</version>
+            <scope>system</scope>
+            <systemPath>${project.build.directory}/idea-sdk/lib/util-8.jar</systemPath>
         </dependency>
         <!-- JetBrains annotations -->
         <dependency>

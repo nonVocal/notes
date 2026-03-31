@@ -7,9 +7,10 @@
     <description><![CDATA[
         Integrates the Notes application into IntelliJ IDEA.<br>
         <ul>
-            <li>Create, view and delete notes from the IDE</li>
-            <li>Dedicated tool window for note management</li>
-            <li>Quick-create action via menu or shortcut</li>
+            <li>Persistent <b>tool window sidebar</b> with TUI-style two-panel layout (All Notes / New Note / Search)</li>
+            <li>Floating <b>dialog window</b> with the same layout – open anywhere with Ctrl+Alt+N</li>
+            <li>Quick-create action via menu or shortcut (Ctrl+Shift+N)</li>
+            <li>Ctrl+F focuses the Search view inside both surfaces</li>
         </ul>
     ]]></description>
 
@@ -19,7 +20,7 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <!-- Tool window shown in the right sidebar -->
+        <!-- Persistent sidebar (tool window) -->
         <toolWindow id="Notes"
                     anchor="right"
                     factoryClass="dev.nonvocal.notes.idea.NotesToolWindowFactory"
@@ -29,6 +30,15 @@
     <actions>
         <group id="NotesGroup" text="Notes" description="Notes actions" popup="true">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
+
+            <!-- Open the floating Notes dialog window -->
+            <action id="NotesDialogAction"
+                    class="dev.nonvocal.notes.idea.action.NotesDialogAction"
+                    text="Notes Dialog Window…"
+                    description="Open the Notes two-panel UI in a floating dialog">
+                <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt N"/>
+            </action>
+
             <action id="NotesNewAction"
                     class="dev.nonvocal.notes.idea.action.NewNoteAction"
                     text="New Note…"
@@ -36,6 +46,7 @@
                     icon="AllIcons.General.Add">
                 <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift N"/>
             </action>
+
             <action id="NotesListAction"
                     class="dev.nonvocal.notes.idea.action.ListNotesAction"
                     text="Show All Notes"
@@ -43,4 +54,6 @@
         </group>
     </actions>
 </idea-plugin>
+
+
 
