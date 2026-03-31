@@ -207,6 +207,18 @@ public class TuiClient {
         panel.addComponent(btnRow);
 
         dialog.setComponent(panel);
+
+        // Close on ESC
+        dialog.addWindowListener(new WindowListenerAdapter() {
+            @Override
+            public void onInput(Window basePane, KeyStroke keyStroke, AtomicBoolean deliverEvent) {
+                if (keyStroke.getKeyType() == KeyType.Escape) {
+                    deliverEvent.set(false);
+                    dialog.close();
+                }
+            }
+        });
+
         gui.addWindowAndWait(dialog);
     }
 
