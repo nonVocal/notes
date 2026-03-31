@@ -1,4 +1,4 @@
-# Notes – Multi-Module Maven Project
+﻿# Notes – Multi-Module Maven Project
 
 A multi-module Maven project for a Notes application.  
 **No framework dependencies** – plain Java 26, Jakarta Servlet 6, Lanterna, H2 and Jackson only.
@@ -168,6 +168,6 @@ unzip notes-vim-plugin/target/notes-vim-plugin-1.0.0.zip -d ~/.vim
 |---|---|
 | GroupId | `dev.nonvocal` |
 | Version | `1.0.0` |
-| Java source/target | `25` |
+| Java source/target | `21` |
 | Encoding | `UTF-8` |
 | Base package | `dev.nonvocal.notes` |
