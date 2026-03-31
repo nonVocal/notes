@@ -7,7 +7,8 @@
 
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "sidePanel"
   ],
   "host_permissions": [
     "http://localhost:8080/*"
@@ -27,6 +28,10 @@
     "default_title": "Notes"
   },
 
+  "side_panel": {
+    "default_path": "sidebar/sidebar.html"
+  },
+
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
@@ -41,4 +46,6 @@
     "128": "icons/icon128.png"
   }
 }
+
+
 

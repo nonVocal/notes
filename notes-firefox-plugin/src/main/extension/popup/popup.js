@@ -1,56 +1,116 @@
 /**
- * Popup script for the Notes Firefox extension.
+ * Notes extension UI – view logic shared by popup (dialog) and sidebar.
+ * Uses browser.runtime.sendMessage (Firefox MV2 background script).
  */
 document.addEventListener('DOMContentLoaded', () => {
-    loadNotes();
+    let allNotes = [];
 
-    document.getElementById('save-btn').addEventListener('click', saveNote);
+    // ── View routing ───────────────────────────────────────────────────────
+    function showView(name) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('#sidebar-nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById('view-' + name)?.classList.add('active');
+        document.querySelector(`#sidebar-nav [data-view="${name}"]`)?.classList.add('active');
+        if (name === 'all-notes') loadNotes();
+        if (name === 'search')    setTimeout(() => document.getElementById('search-input')?.focus(), 30);
+        if (name === 'new-note')  setTimeout(() => document.getElementById('title')?.focus(), 30);
+    }
+
+    document.querySelectorAll('#sidebar-nav button').forEach(btn =>
+        btn.addEventListener('click', () => showView(btn.dataset.view)));
+
+    // ── Ctrl+F → Search ────────────────────────────────────────────────────
+    document.addEventListener('keydown', e => {
+        if (e.ctrlKey && e.key === 'f') { e.preventDefault(); showView('search'); }
+    });
+
+    // ── "Open as Sidebar" button (popup only) ─────────────────────────────
+    document.getElementById('open-sidebar-btn')?.addEventListener('click', () => {
+        browser.sidebarAction.open();
+        window.close();
+    });
+
+    // ── Background messaging ───────────────────────────────────────────────
+    const sendMsg = (action, payload) =>
+        browser.runtime.sendMessage({ action, payload });
+
+    // ── Load & render notes ────────────────────────────────────────────────
+    async function loadNotes() {
+        const list = document.getElementById('notes-list');
+        if (!list) return;
+        list.innerHTML = '<p class="empty-hint">Loading…</p>';
+        try {
+            allNotes = await sendMsg('getNotes');
+            renderNotes(allNotes, list);
+        } catch {
+            list.innerHTML = '<p class="err">Could not load notes.</p>';
+        }
+    }
+
+    function renderNotes(notes, container) {
+        if (!notes?.length) { container.innerHTML = '<p class="empty-hint">No notes yet.</p>'; return; }
+        container.innerHTML = '';
+        notes.forEach(n => container.appendChild(buildCard(n)));
+    }
+
+    function buildCard(note) {
+        const div = document.createElement('div');
+        div.className = 'note-card';
+        div.innerHTML = `
+            <div class="note-card-title">${esc(note.title)}</div>
+            <div class="note-card-content">${esc(note.content ?? '')}</div>
+            <div class="note-card-footer"><button class="btn btn-danger">Delete</button></div>`;
+        div.querySelector('button').onclick = async () => {
+            await sendMsg('deleteNote', { id: note.id });
+            div.remove();
+            allNotes = allNotes.filter(n => n.id !== note.id);
+            runSearch();
+        };
+        return div;
+    }
+
+    // ── Save note ──────────────────────────────────────────────────────────
+    document.getElementById('save-btn')?.addEventListener('click', async () => {
+        const titleEl = document.getElementById('title');
+        const contEl  = document.getElementById('note-content');
+        const title   = titleEl?.value.trim() ?? '';
+        const content = contEl?.value.trim() ?? '';
+        if (!title) { setStatus('Title is required.', 'error'); return; }
+        try {
+            await sendMsg('createNote', { title, content });
+            titleEl.value = ''; contEl.value = '';
+            setStatus('Saved!', 'success');
+            setTimeout(() => showView('all-notes'), 700);
+        } catch { setStatus('Save failed.', 'error'); }
+    });
+
+    function setStatus(msg, type) {
+        const el = document.getElementById('status');
+        if (el) { el.textContent = msg; el.className = type; }
+    }
+
+    document.getElementById('title')?.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); document.getElementById('note-content')?.focus(); }
+    });
+
+    // ── Search ─────────────────────────────────────────────────────────────
+    function runSearch() {
+        const q       = document.getElementById('search-input')?.value.trim().toLowerCase() ?? '';
+        const results = document.getElementById('search-results');
+        if (!results) return;
+        if (!q) { results.innerHTML = ''; return; }
+        const hits = allNotes.filter(n =>
+            n.title.toLowerCase().includes(q) || (n.content ?? '').toLowerCase().includes(q));
+        renderNotes(hits, results);
+    }
+
+    document.getElementById('search-input')?.addEventListener('input',   runSearch);
+    document.getElementById('search-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    loadNotes();
 });
 
-async function loadNotes() {
-    const list = document.getElementById('notes-list');
-    const loading = document.getElementById('loading');
-    try {
-        const notes = await browser.runtime.sendMessage({ action: 'getNotes' });
-        loading.remove();
-        if (!notes || notes.length === 0) {
-            list.innerHTML = '<p>No notes yet.</p>';
-            return;
-        }
-        notes.forEach(note => list.appendChild(createNoteElement(note)));
-    } catch (e) {
-        loading.textContent = 'Could not load notes. Is the server running?';
-    }
-}
-
-function createNoteElement(note) {
-    const el = document.createElement('div');
-    el.className = 'note-item';
-    el.innerHTML = `
-        <span class="note-delete" data-id="${note.id}">✕</span>
-        <div class="note-title">${escapeHtml(note.title)}</div>
-        <div class="note-content">${escapeHtml(note.content)}</div>
-    `;
-    el.querySelector('.note-delete').addEventListener('click', async () => {
-        await browser.runtime.sendMessage({ action: 'deleteNote', payload: { id: note.id } });
-        el.remove();
-    });
-    return el;
-}
-
-async function saveNote() {
-    const title   = document.getElementById('note-title').value.trim();
-    const content = document.getElementById('note-content').value.trim();
-    if (!title) return;
-
-    await browser.runtime.sendMessage({ action: 'createNote', payload: { title, content } });
-    document.getElementById('note-title').value   = '';
-    document.getElementById('note-content').value = '';
-    document.getElementById('notes-list').innerHTML = '<p id="loading">Loading notes…</p>';
-    loadNotes();
-}
-
-function escapeHtml(str) {
-    return (str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
 
