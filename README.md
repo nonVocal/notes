@@ -55,7 +55,7 @@ notes/
 │   └── src/main/
 │       ├── java/dev/nonvocal/notes/idea/
 │       │   ├── NotesToolWindowFactory.java
-│       │   └── action/NewNoteAction.java / ListNotesAction.java
+│       │   └── action/NewNoteAction.java / ListNotesAction.java / NotesDialogAction.java
 │       └── resources/META-INF/plugin.xml
 │
 └── notes-osgi/                      # OSGi bundle with Declarative Services
