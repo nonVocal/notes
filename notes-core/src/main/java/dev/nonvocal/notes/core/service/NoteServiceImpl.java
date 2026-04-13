@@ -19,6 +19,15 @@ public class NoteServiceImpl implements NoteService {
         this.noteRepository = new NoteRepository(new DbConnector());
     }
 
+    /**
+     * Package-private constructor for unit tests.
+     * Allows injecting an isolated {@link NoteRepository} backed by a temporary
+     * or in-memory database so tests never touch the production database.
+     */
+    NoteServiceImpl(NoteRepository noteRepository) {
+        this.noteRepository = noteRepository;
+    }
+
     @Override
     public Note createNote(Note note) {
         try {
