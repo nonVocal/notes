@@ -454,9 +454,17 @@
     };
 
     // ── Helpers ────────────────────────────────────────────────────────────────
-    function fmtDate(iso) {
-        if (!iso) return '—';
-        const d = new Date(iso);
+    function fmtDate(val) {
+        if (!val) return '—';
+        let d;
+        if (Array.isArray(val)) {
+            // Jackson array format: [year, month, day, hour, minute, second, nano]
+            d = new Date(val[0], val[1] - 1, val[2], val[3] ?? 0, val[4] ?? 0, val[5] ?? 0);
+        } else {
+            // ISO-8601 string – truncate to milliseconds so all browsers parse it
+            d = new Date(String(val).replace(/(\.\d{3})\d+/, '$1'));
+        }
+        if (isNaN(d.getTime())) return '—';
         return d.toLocaleString(undefined, {
             year: 'numeric', month: '2-digit', day: '2-digit',
             hour: '2-digit', minute: '2-digit'
