@@ -17,9 +17,10 @@ import java.io.IOException;
  * REST-style servlet handling {@code /api/notes/*}.
  *
  * <ul>
- *   <li>GET    /api/notes      – list all notes (stub)</li>
+ *   <li>GET    /api/notes      – list all notes</li>
  *   <li>GET    /api/notes/{id} – get note by id</li>
  *   <li>POST   /api/notes      – create note (JSON body)</li>
+ *   <li>PUT    /api/notes/{id} – update note (JSON body)</li>
  *   <li>DELETE /api/notes/{id} – delete note</li>
  * </ul>
  */
@@ -75,6 +76,27 @@ public class NotesApiServlet extends HttpServlet {
         resp.setStatus(HttpServletResponse.SC_CREATED);
         resp.setContentType("application/json;charset=UTF-8");
         objectMapper.writeValue(resp.getWriter(), created);
+    }
+
+    // ------------------------------------------------------------------
+    // PUT
+    // ------------------------------------------------------------------
+    @Override
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+
+        Long id = parseId(req.getPathInfo(), resp);
+        if (id == null) return;
+
+        Note incoming = objectMapper.readValue(req.getInputStream(), Note.class);
+
+        try {
+            Note updated = noteService.updateNote(id, incoming);
+            resp.setContentType("application/json;charset=UTF-8");
+            objectMapper.writeValue(resp.getWriter(), updated);
+        } catch (IllegalArgumentException e) {
+            resp.sendError(HttpServletResponse.SC_NOT_FOUND, e.getMessage());
+        }
     }
 
     // ------------------------------------------------------------------

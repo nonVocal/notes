@@ -29,6 +29,19 @@ public class NoteServiceImpl implements NoteService {
     }
 
     @Override
+    public Note updateNote(Long id, Note note) {
+        try {
+            Note existing = noteRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Note with id " + id + " not found"));
+            existing.setTitle(note.getTitle());
+            existing.setContent(note.getContent());
+            return noteRepository.save(existing);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to update note with id " + id, e);
+        }
+    }
+
+    @Override
     public Note getNote(Long id) {
         try {
             return noteRepository.findById(id).orElse(null);
