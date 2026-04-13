@@ -6,14 +6,18 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 /**
- * Manages the SQLite database connection.
- * The database file {@code notes.db} is stored at {@code %APPDATA%\nvnotes\db\notes.db}.
+ * Manages the H2 file-based database connection.
+ * H2 stores the database as {@code notes.mv.db} inside {@code %APPDATA%\nvnotes\db\}.
+ * The JDBC URL references the base name {@code notes} – H2 appends the {@code .mv.db} extension automatically.
  */
 public class DbConnector {
 
-    /** Subdirectory inside %APPDATA% where the database is stored. */
+    /**
+     * Base path (without extension) of the H2 database file inside %APPDATA%.
+     * H2 will create {@code notes.mv.db} at this location.
+     */
     private static final String DB_RELATIVE_PATH =
-            "nvnotes" + File.separator + "db" + File.separator + "notes.db";
+            "nvnotes" + File.separator + "db" + File.separator + "notes";
 
     private final String jdbcUrl;
 
@@ -36,7 +40,8 @@ public class DbConnector {
      */
     public DbConnector(File dbFile) {
         ensureDirectoryExists(dbFile.getParentFile());
-        this.jdbcUrl = "jdbc:sqlite:" + dbFile.getAbsolutePath();
+        // H2 file-mode URL; H2 appends ".mv.db" to the given path automatically
+        this.jdbcUrl = "jdbc:h2:file:" + dbFile.getAbsolutePath() + ";AUTO_SERVER=FALSE";
     }
 
     /**
