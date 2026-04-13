@@ -34,6 +34,11 @@
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <intellij.version>2024.3</intellij.version>
+        <!-- Path to the local IntelliJ IDEA installation used for the sandbox run.
+             Override on the command line: -Didea.home="C:\path\to\idea" -->
+        <idea.home>C:\Program Files (x86)\JetBrains\IntelliJ IDEA Community Edition 2025.1.4.1</idea.home>
+        <!-- Writable sandbox – isolated from your real IDEA settings. -->
+        <sandbox.dir>${project.build.directory}/idea-sandbox</sandbox.dir>
     </properties>
 
     <dependencies>
@@ -44,31 +49,14 @@
         </dependency>
         <!-- IntelliJ Platform SDK (provided at runtime by the IDE).
              The ZIP is unpacked by maven-dependency-plugin during initialize.
-             The two system-scope entries below point to the extracted JARs so
-             that IntelliJ IDEA's Maven importer can resolve com.intellij.*
-             symbols without needing to understand the raw ZIP artifact. -->
+             Compilation is handled by maven-antrun-plugin using wildcard filesets
+             over the unpacked SDK JARs (see build section below). -->
         <dependency>
             <groupId>com.jetbrains.intellij.idea</groupId>
             <artifactId>ideaIC</artifactId>
             <version>${intellij.version}</version>
             <type>zip</type>
             <scope>provided</scope>
-        </dependency>
-        <!-- app-client.jar: ToolWindow(Factory), Content(Factory), AnAction, WindowManager, … -->
-        <dependency>
-            <groupId>com.jetbrains.intellij.sdk</groupId>
-            <artifactId>app-client</artifactId>
-            <version>${intellij.version}</version>
-            <scope>system</scope>
-            <systemPath>${project.build.directory}/idea-sdk/lib/app-client.jar</systemPath>
-        </dependency>
-        <!-- util-8.jar: Project, … -->
-        <dependency>
-            <groupId>com.jetbrains.intellij.sdk</groupId>
-            <artifactId>util-8</artifactId>
-            <version>${intellij.version}</version>
-            <scope>system</scope>
-            <systemPath>${project.build.directory}/idea-sdk/lib/util-8.jar</systemPath>
         </dependency>
         <!-- JetBrains annotations -->
         <dependency>
@@ -116,6 +104,23 @@
                                     <includes>lib/*.jar,lib/modules/*.jar</includes>
                                 </artifactItem>
                             </artifactItems>
+                        </configuration>
+                    </execution>
+                    <!--
+                        Copy all runtime dependencies (e.g. notes-api) to plugin-lib/
+                        so they can be bundled into the sandbox plugin directory.
+                    -->
+                    <execution>
+                        <id>copy-plugin-deps</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/plugin-lib</outputDirectory>
+                            <includeScope>runtime</includeScope>
+                            <!-- Exclude IDE-provided artifacts -->
+                            <excludeGroupIds>com.jetbrains.intellij.idea,org.jetbrains</excludeGroupIds>
                         </configuration>
                     </execution>
                 </executions>
@@ -173,6 +178,65 @@
                                                  includes="*.jar"/>
                                     </classpath>
                                 </javac>
+                            </target>
+                        </configuration>
+                    </execution>
+
+                    <!--
+                        Run the plugin in a sandboxed IntelliJ IDEA instance.
+                        The sandbox is isolated from your real IDEA settings.
+
+                        Usage (from project root):
+                            mvn package antrun:run@run-ide -f notes-idea-plugin/pom.xml
+
+                        Override the IDEA installation path if needed.
+                        IMPORTANT – on Windows/PowerShell do NOT wrap the path in
+                        double quotes; use single quotes or no quotes at all:
+                            mvn package antrun:run@run-ide '-Didea.home=C:\path\to\idea' -f notes-idea-plugin/pom.xml
+                    -->
+                    <execution>
+                        <id>run-ide</id>
+                        <phase>none</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <!-- 1. Create sandbox directory structure -->
+                                <mkdir dir="${sandbox.dir}/plugins/notes-idea-plugin/lib"/>
+                                <mkdir dir="${sandbox.dir}/config"/>
+                                <mkdir dir="${sandbox.dir}/system"/>
+                                <mkdir dir="${sandbox.dir}/log"/>
+
+                                <!-- 2. Copy the plugin JAR into the sandbox -->
+                                <copy file="${project.build.directory}/${project.build.finalName}.jar"
+                                      todir="${sandbox.dir}/plugins/notes-idea-plugin/lib"
+                                      overwrite="true"/>
+
+                                <!-- 3. Copy runtime dependencies (e.g. notes-api) -->
+                                <copy todir="${sandbox.dir}/plugins/notes-idea-plugin/lib"
+                                      overwrite="true">
+                                    <fileset dir="${project.build.directory}/plugin-lib"
+                                             includes="*.jar"
+                                             erroronmissingdir="false"/>
+                                </copy>
+
+                                <!-- 4. Write idea.properties, then replace backslashes with
+                                        forward slashes (backslashes are escape chars in
+                                        Java .properties files). -->
+                                <echo file="${sandbox.dir}/idea.properties">idea.config.path=${sandbox.dir}/config
+idea.system.path=${sandbox.dir}/system
+idea.plugins.path=${sandbox.dir}/plugins
+idea.log.path=${sandbox.dir}/log
+</echo>
+                                <replace file="${sandbox.dir}/idea.properties"
+                                         token="\" value="/"/>
+
+                                <!-- 5. Launch IDEA with the sandbox properties -->
+                                <exec executable="${idea.home}/bin/idea64.exe" spawn="true">
+                                    <env key="IDEA_PROPERTIES"
+                                         value="${sandbox.dir}/idea.properties"/>
+                                </exec>
                             </target>
                         </configuration>
                     </execution>
