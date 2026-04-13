@@ -106,7 +106,9 @@
 
         .note-card-title   { font-weight: 600; font-size: 15px; margin-bottom: 6px; }
         .note-card-content { color: #555; font-size: 13px; white-space: pre-wrap; line-height: 1.55; }
-        .note-card-footer  { display: flex; justify-content: flex-end; margin-top: 10px; }
+        .note-card-footer  { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+        .note-card-meta    { font-size: 11px; color: #999; margin-top: 8px; display: flex; gap: 16px; flex-wrap: wrap; }
+        .note-card-meta span::before { font-weight: 600; color: #bbb; }
 
         /* ── Form ────────────────────────────────────────────────────────────── */
         .form-card {
@@ -190,8 +192,31 @@
         .btn:hover            { background: #1558b0; }
         .btn-danger           { background: #d93025; }
         .btn-danger:hover     { background: #b1261c; }
+        .btn-secondary        { background: #5f6368; }
+        .btn-secondary:hover  { background: #3c4043; }
         .btn-sm               { padding: 5px 13px; font-size: 13px; }
         .btn-search           { border-radius: 0 6px 6px 0; padding: 9px 16px; }
+
+        /* ── Edit modal ──────────────────────────────────────────────────────── */
+        .modal-backdrop {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.45);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-backdrop.open { display: flex; }
+        .modal {
+            background: #fff;
+            border-radius: 10px;
+            padding: 28px 30px;
+            width: 100%;
+            max-width: 560px;
+            box-shadow: 0 8px 32px rgba(0,0,0,.2);
+        }
+        .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 18px; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
 
         /* ── Status / feedback ───────────────────────────────────────────────── */
         #status { font-size: 13px; min-height: 20px; margin-bottom: 12px; }
@@ -248,6 +273,21 @@
     </section>
 
 </main>
+
+<!-- ── Edit Modal ────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="edit-modal-backdrop">
+    <div class="modal">
+        <div class="modal-title">Edit Note</div>
+        <label class="field-label" for="edit-title">Title</label>
+        <input id="edit-title" type="text" placeholder="Note title…" />
+        <label class="field-label" for="edit-content">Content</label>
+        <textarea id="edit-content" placeholder="Write your note here…"></textarea>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="edit-cancel-btn">Cancel</button>
+            <button class="btn" id="edit-save-btn">Save Changes</button>
+        </div>
+    </div>
+</div>
 
 <script>
     const API = 'api/notes';
@@ -306,10 +346,16 @@
         div.innerHTML = `
             <div class="note-card-title">${esc(note.title)}</div>
             <div class="note-card-content">${esc(note.content ?? '')}</div>
+            <div class="note-card-meta">
+                <span>🕐 Created: ${fmtDate(note.createdAt)}</span>
+                <span>✏️ Modified: ${fmtDate(note.modifiedAt)}</span>
+            </div>
             <div class="note-card-footer">
-                <button class="btn btn-danger btn-sm">Delete</button>
+                <button class="btn btn-secondary btn-sm edit-btn">Edit</button>
+                <button class="btn btn-danger btn-sm delete-btn">Delete</button>
             </div>`;
-        div.querySelector('button').onclick = () => deleteNote(note.id, div);
+        div.querySelector('.edit-btn').onclick   = () => openEditModal(note);
+        div.querySelector('.delete-btn').onclick = () => deleteNote(note.id, div);
         return div;
     }
 
@@ -372,7 +418,51 @@
         if (e.key === 'Enter') runSearch();
     });
 
+    // ── Edit modal ─────────────────────────────────────────────────────────────
+    let editingId = null;
+
+    function openEditModal(note) {
+        editingId = note.id;
+        document.getElementById('edit-title').value   = note.title   ?? '';
+        document.getElementById('edit-content').value = note.content ?? '';
+        document.getElementById('edit-modal-backdrop').classList.add('open');
+        document.getElementById('edit-title').focus();
+    }
+
+    function closeEditModal() {
+        document.getElementById('edit-modal-backdrop').classList.remove('open');
+        editingId = null;
+    }
+
+    document.getElementById('edit-cancel-btn').onclick = closeEditModal;
+    document.getElementById('edit-modal-backdrop').addEventListener('click', e => {
+        if (e.target === e.currentTarget) closeEditModal();
+    });
+
+    document.getElementById('edit-save-btn').onclick = async () => {
+        const title   = document.getElementById('edit-title').value.trim();
+        const content = document.getElementById('edit-content').value.trim();
+        if (!title) { document.getElementById('edit-title').focus(); return; }
+
+        await fetch(`${API}/${editingId}`, {
+            method:  'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ title, content })
+        });
+        closeEditModal();
+        loadNotes();
+    };
+
     // ── Helpers ────────────────────────────────────────────────────────────────
+    function fmtDate(iso) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        return d.toLocaleString(undefined, {
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit'
+        });
+    }
+
     function esc(s) {
         return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }

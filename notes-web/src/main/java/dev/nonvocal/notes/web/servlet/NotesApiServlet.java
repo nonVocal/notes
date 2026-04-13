@@ -4,6 +4,7 @@ import dev.nonvocal.notes.core.entity.Note;
 import dev.nonvocal.notes.core.service.NoteService;
 import dev.nonvocal.notes.core.service.NoteServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -33,7 +34,9 @@ public class NotesApiServlet extends HttpServlet {
     @Override
     public void init() throws ServletException {
         noteService   = new NoteServiceImpl();
-        objectMapper  = new ObjectMapper().registerModule(new JavaTimeModule());
+        objectMapper  = new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
     // ------------------------------------------------------------------
