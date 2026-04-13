@@ -1,5 +1,7 @@
 package dev.nonvocal.notes.core.entity;
 
+import java.time.LocalDateTime;
+
 /**
  * Note entity class
  */
@@ -7,6 +9,8 @@ public class Note {
     private Long id;
     private String title;
     private String content;
+    private LocalDateTime createdAt;
+    private LocalDateTime modifiedAt;
 
     public Note() {}
 
@@ -38,5 +42,20 @@ public class Note {
     public void setContent(String content) {
         this.content = content;
     }
-}
 
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getModifiedAt() {
+        return modifiedAt;
+    }
+
+    public void setModifiedAt(LocalDateTime modifiedAt) {
+        this.modifiedAt = modifiedAt;
+    }
+}

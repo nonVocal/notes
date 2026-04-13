@@ -46,8 +46,8 @@ public class NotesApiServlet extends HttpServlet {
         resp.setContentType("application/json;charset=UTF-8");
 
         if (pathInfo == null || pathInfo.equals("/")) {
-            // GET /api/notes – return empty array (list not yet implemented in service)
-            resp.getWriter().write("[]");
+            // GET /api/notes – return all notes
+            objectMapper.writeValue(resp.getWriter(), noteService.getAllNotes());
         } else {
             Long id = parseId(pathInfo, resp);
             if (id == null) return;

@@ -5,6 +5,7 @@ import dev.nonvocal.notes.core.database.NoteRepository;
 import dev.nonvocal.notes.core.entity.Note;
 
 import java.sql.SQLException;
+import java.util.List;
 
 /**
  * Note service implementation backed by a {@link NoteRepository}.
@@ -33,6 +34,15 @@ public class NoteServiceImpl implements NoteService {
             return noteRepository.findById(id).orElse(null);
         } catch (SQLException e) {
             throw new RuntimeException("Failed to retrieve note with id " + id, e);
+        }
+    }
+
+    @Override
+    public List<Note> getAllNotes() {
+        try {
+            return noteRepository.findAll();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to retrieve all notes", e);
         }
     }
 

@@ -3,6 +3,7 @@ package dev.nonvocal.notes.core.database;
 import dev.nonvocal.notes.core.entity.Note;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -23,23 +24,31 @@ public class NoteRepository {
 
     private static final String CREATE_TABLE_SQL = """
             CREATE TABLE IF NOT EXISTS notes (
-                id      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-                title   VARCHAR(255) NOT NULL,
-                content CLOB
+                id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                title       VARCHAR(255) NOT NULL,
+                content     CLOB,
+                created_at  TIMESTAMP NOT NULL,
+                modified_at TIMESTAMP NOT NULL
             )
             """;
 
+    // Migration: add columns to existing databases that were created without them
+    private static final String ADD_CREATED_AT_SQL =
+            "ALTER TABLE notes ADD COLUMN IF NOT EXISTS created_at  TIMESTAMP";
+    private static final String ADD_MODIFIED_AT_SQL =
+            "ALTER TABLE notes ADD COLUMN IF NOT EXISTS modified_at TIMESTAMP";
+
     private static final String INSERT_SQL =
-            "INSERT INTO notes (title, content) VALUES (?, ?)";
+            "INSERT INTO notes (title, content, created_at, modified_at) VALUES (?, ?, ?, ?)";
 
     private static final String UPDATE_SQL =
-            "UPDATE notes SET title = ?, content = ? WHERE id = ?";
+            "UPDATE notes SET title = ?, content = ?, modified_at = ? WHERE id = ?";
 
     private static final String SELECT_BY_ID_SQL =
-            "SELECT id, title, content FROM notes WHERE id = ?";
+            "SELECT id, title, content, created_at, modified_at FROM notes WHERE id = ?";
 
     private static final String SELECT_ALL_SQL =
-            "SELECT id, title, content FROM notes ORDER BY id";
+            "SELECT id, title, content, created_at, modified_at FROM notes ORDER BY id";
 
     private static final String DELETE_SQL =
             "DELETE FROM notes WHERE id = ?";
@@ -145,16 +154,22 @@ public class NoteRepository {
         try (Connection conn = dbConnector.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(CREATE_TABLE_SQL);
+            // Ensure timestamp columns exist for databases created before this migration
+            stmt.execute(ADD_CREATED_AT_SQL);
+            stmt.execute(ADD_MODIFIED_AT_SQL);
         } catch (SQLException e) {
             throw new IllegalStateException("Failed to initialise the notes table", e);
         }
     }
 
     private Note insert(Note note) throws SQLException {
+        LocalDateTime now = LocalDateTime.now();
         try (Connection conn = dbConnector.getConnection();
              PreparedStatement stmt = conn.prepareStatement(INSERT_SQL, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, note.getTitle());
             stmt.setString(2, note.getContent());
+            stmt.setTimestamp(3, Timestamp.valueOf(now));
+            stmt.setTimestamp(4, Timestamp.valueOf(now));
             stmt.executeUpdate();
             try (ResultSet keys = stmt.getGeneratedKeys()) {
                 if (keys.next()) {
@@ -162,17 +177,22 @@ public class NoteRepository {
                 }
             }
         }
+        note.setCreatedAt(now);
+        note.setModifiedAt(now);
         return note;
     }
 
     private Note update(Note note) throws SQLException {
+        LocalDateTime now = LocalDateTime.now();
         try (Connection conn = dbConnector.getConnection();
              PreparedStatement stmt = conn.prepareStatement(UPDATE_SQL)) {
             stmt.setString(1, note.getTitle());
             stmt.setString(2, note.getContent());
-            stmt.setLong(3, note.getId());
+            stmt.setTimestamp(3, Timestamp.valueOf(now));
+            stmt.setLong(4, note.getId());
             stmt.executeUpdate();
         }
+        note.setModifiedAt(now);
         return note;
     }
 
@@ -181,6 +201,14 @@ public class NoteRepository {
         note.setId(rs.getLong("id"));
         note.setTitle(rs.getString("title"));
         note.setContent(rs.getString("content"));
+        Timestamp createdAt = rs.getTimestamp("created_at");
+        if (createdAt != null) {
+            note.setCreatedAt(createdAt.toLocalDateTime());
+        }
+        Timestamp modifiedAt = rs.getTimestamp("modified_at");
+        if (modifiedAt != null) {
+            note.setModifiedAt(modifiedAt.toLocalDateTime());
+        }
         return note;
     }
 }
